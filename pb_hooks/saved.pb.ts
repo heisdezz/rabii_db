@@ -1,5 +1,4 @@
 /// <reference path="../pb_data/types.d.ts" />
-
 routerAdd(
   "GET",
   "/saved/{gen_id}",
@@ -25,5 +24,5 @@ routerAdd(
       });
     }
   },
-  $apis.requireAuth,
+  $apis.requireAuth(),
 );

@@ -59,3 +59,26 @@ routerAdd(
   },
   $apis.requireAuth(),
 );
+
+onRecordAfterCreateSuccess((e) => {
+  // const record = e.record;
+  const number = e.record?.get("like_dislike");
+  const video_record = e.record?.get("video");
+  if (!video_record) {
+    console.log("video_record_not found");
+    return e.next();
+  }
+
+  if (number == 1) {
+    const prev_like = video_record.get("likes_count");
+    video_record.set("likes_count", prev_like + 1);
+    e.app.save(video_record);
+    return e.next();
+  }
+  if (number == 0) {
+    const prev_dislike = video_record.get("dislikes_count");
+    video_record.set("dislikes_count", prev_dislike + 1);
+    e.app.save(video_record);
+    return e.next();
+  }
+}, "post_reactions");

@@ -1,7 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 routerAdd(
   "GET",
-  "/liked/${id}",
+  "/liked/{id}",
   (e) => {
     //@ts-ignore
     let gen_id = e.request.pathValue("gen_id");
@@ -29,7 +29,7 @@ routerAdd(
 
 routerAdd(
   "POST",
-  "/like/${id}",
+  "/like/{id}",
   (e) => {
     //@ts-ignore
     //

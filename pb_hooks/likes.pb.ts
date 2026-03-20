@@ -44,6 +44,8 @@ routerAdd(
       new_like.set("like_dislike", 1);
       new_like.set("user", user_id);
       new_like.set("post", video_id);
+      e.app.save(new_like);
+      e.next();
       return e.json(201, {
         data: gen_id,
         message: "video liked",

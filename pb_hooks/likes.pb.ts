@@ -1,4 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
+
 routerAdd(
   "GET",
   "/liked/{id}",
@@ -8,21 +9,15 @@ routerAdd(
     const user_id = info.auth?.id;
     const gen_id = `${user_id}${id}`;
     try {
-      const video = e.app.findRecordById("post_reactions", gen_id);
-      if (video) {
-        return e.json(200, {
-          data: true,
-          message: "video Liked",
-        });
-      }
+      const reaction = e.app.findRecordById("post_reactions", gen_id);
       return e.json(200, {
-        data: false,
-        message: "not Liked",
+        data: reaction.get("like_dislike") == 1 ? "liked" : "disliked",
+        message: "reaction found",
       });
     } catch (err) {
       return e.json(200, {
-        data: false,
-        message: "video not found",
+        data: null,
+        message: "no reaction",
       });
     }
   },
@@ -38,27 +33,32 @@ routerAdd(
     const user_id = info.auth?.id;
     const gen_id = `${user_id}${video_id}`;
     try {
-      const pr_col = e.app.findCollectionByNameOrId("post_reactions");
-      const new_like = new Record(pr_col);
-      new_like.set("id", gen_id);
-      new_like.set("like_dislike", 1);
-      new_like.set("user", user_id);
-      new_like.set("post", video_id);
-      e.app.save(new_like);
-      return e.json(201, {
-        data: gen_id,
-        message: "video liked",
-      });
+      let reaction: RecordModel;
+      try {
+        reaction = e.app.findRecordById("post_reactions", gen_id);
+        // record exists — update it
+        reaction.set("like_dislike", 1);
+        e.app.save(reaction);
+        return e.json(200, { data: gen_id, message: "updated to liked" });
+      } catch (_) {
+        // record doesn't exist — create it
+        const pr_col = e.app.findCollectionByNameOrId("post_reactions");
+        reaction = new Record(pr_col);
+        reaction.set("id", gen_id);
+        reaction.set("like_dislike", 1);
+        reaction.set("user", user_id);
+        reaction.set("post", video_id);
+        e.app.save(reaction);
+        return e.json(201, { data: gen_id, message: "video liked" });
+      }
     } catch (err) {
       console.log("failed to like video:", err);
-      return e.json(500, {
-        data: null,
-        message: "internal server error",
-      });
+      return e.json(500, { data: null, message: "internal server error" });
     }
   },
   $apis.requireAuth(),
 );
+
 routerAdd(
   "POST",
   "/dislike/{id}",
@@ -68,23 +68,27 @@ routerAdd(
     const user_id = info.auth?.id;
     const gen_id = `${user_id}${video_id}`;
     try {
-      const pr_col = e.app.findCollectionByNameOrId("post_reactions");
-      const new_like = new Record(pr_col);
-      new_like.set("id", gen_id);
-      new_like.set("like_dislike", 0);
-      new_like.set("user", user_id);
-      new_like.set("post", video_id);
-      e.app.save(new_like);
-      return e.json(201, {
-        data: gen_id,
-        message: "video liked",
-      });
+      let reaction: RecordModel;
+      try {
+        reaction = e.app.findRecordById("post_reactions", gen_id);
+        // record exists — update it
+        reaction.set("like_dislike", 0);
+        e.app.save(reaction);
+        return e.json(200, { data: gen_id, message: "updated to disliked" });
+      } catch (_) {
+        // record doesn't exist — create it
+        const pr_col = e.app.findCollectionByNameOrId("post_reactions");
+        reaction = new Record(pr_col);
+        reaction.set("id", gen_id);
+        reaction.set("like_dislike", 0);
+        reaction.set("user", user_id);
+        reaction.set("post", video_id);
+        e.app.save(reaction);
+        return e.json(201, { data: gen_id, message: "video disliked" });
+      }
     } catch (err) {
-      console.log("failed to like video:", err);
-      return e.json(500, {
-        data: null,
-        message: "internal server error",
-      });
+      console.log("failed to dislike video:", err);
+      return e.json(500, { data: null, message: "internal server error" });
     }
   },
   $apis.requireAuth(),
@@ -99,49 +103,78 @@ routerAdd(
     const user_id = info.auth?.id;
     const gen_id = `${user_id}${video_id}`;
     try {
-      const pr_col = e.app.findCollectionByNameOrId("post_reactions");
-      const new_like = new Record(pr_col);
-      new_like.set("id", gen_id);
-      new_like.set("like_dislike", 1);
-      new_like.set("user", user_id);
-      new_like.set("post", video_id);
-      e.app.save(new_like);
-      return e.json(201, {
-        data: gen_id,
-        message: "video liked",
-      });
+      const reaction = e.app.findRecordById("post_reactions", gen_id);
+      e.app.delete(reaction);
+      return e.json(200, { data: gen_id, message: "reaction removed" });
     } catch (err) {
-      console.log("failed to like video:", err);
-      return e.json(500, {
-        data: null,
-        message: "internal server error",
-      });
+      return e.json(404, { data: null, message: "reaction not found" });
     }
   },
   $apis.requireAuth(),
 );
+
+// on create: increment the relevant count
 onRecordAfterCreateSuccess((e) => {
   const number = e.record?.get("like_dislike");
   const post_id = e.record?.get("post");
-  if (!post_id) {
-    console.log("post_id not found");
-    return e.next();
-  }
+  if (!post_id) return e.next();
 
   try {
-    const post_record = e.app.findRecordById("posts", post_id);
-
+    const post = e.app.findRecordById("posts", post_id);
     if (number == 1) {
-      const prev_like = post_record.get("likes_count");
-      post_record.set("likes_count", prev_like + 1);
-      e.app.save(post_record);
+      post.set("likes_count", post.get("likes_count") + 1);
     } else if (number == 0) {
-      const prev_dislike = post_record.get("dislikes_count");
-      post_record.set("dislikes_count", prev_dislike + 1);
-      e.app.save(post_record);
+      post.set("dislikes_count", post.get("dislikes_count") + 1);
     }
+    e.app.save(post);
   } catch (err) {
     console.log("failed to update post counts:", err);
+  }
+
+  return e.next();
+}, "post_reactions");
+
+// on update: swap counts when like_dislike flips
+onRecordAfterUpdateSuccess((e) => {
+  const number = e.record?.get("like_dislike");
+  const post_id = e.record?.get("post");
+  if (!post_id) return e.next();
+
+  try {
+    const post = e.app.findRecordById("posts", post_id);
+    if (number == 1) {
+      // flipped dislike → like
+      post.set("likes_count", post.get("likes_count") + 1);
+      post.set("dislikes_count", post.get("dislikes_count") - 1);
+    } else if (number == 0) {
+      // flipped like → dislike
+      post.set("likes_count", post.get("likes_count") - 1);
+      post.set("dislikes_count", post.get("dislikes_count") + 1);
+    }
+    e.app.save(post);
+  } catch (err) {
+    console.log("failed to update post counts on flip:", err);
+  }
+
+  return e.next();
+}, "post_reactions");
+
+// on delete: decrement the relevant count
+onRecordAfterDeleteSuccess((e) => {
+  const number = e.record?.get("like_dislike");
+  const post_id = e.record?.get("post");
+  if (!post_id) return e.next();
+
+  try {
+    const post = e.app.findRecordById("posts", post_id);
+    if (number == 1) {
+      post.set("likes_count", post.get("likes_count") - 1);
+    } else if (number == 0) {
+      post.set("dislikes_count", post.get("dislikes_count") - 1);
+    }
+    e.app.save(post);
+  } catch (err) {
+    console.log("failed to update post counts on delete:", err);
   }
 
   return e.next();

@@ -116,11 +116,11 @@ routerAdd(
 // on create: increment the relevant count
 onRecordAfterCreateSuccess((e) => {
   const number = e.record?.get("like_dislike");
-  const post_id = e.record?.get("post");
+  const post_id = e.record?.get("videos");
   if (!post_id) return e.next();
 
   try {
-    const post = e.app.findRecordById("posts", post_id);
+    const post = e.app.findRecordById("videos", post_id);
     if (number == 1) {
       post.set("likes_count", post.get("likes_count") + 1);
     } else if (number == 0) {
@@ -128,7 +128,7 @@ onRecordAfterCreateSuccess((e) => {
     }
     e.app.save(post);
   } catch (err) {
-    console.log("failed to update post counts:", err);
+    console.log("failed to update videos counts:", err);
   }
 
   return e.next();
@@ -137,11 +137,11 @@ onRecordAfterCreateSuccess((e) => {
 // on update: swap counts when like_dislike flips
 onRecordAfterUpdateSuccess((e) => {
   const number = e.record?.get("like_dislike");
-  const post_id = e.record?.get("post");
+  const post_id = e.record?.get("videos");
   if (!post_id) return e.next();
 
   try {
-    const post = e.app.findRecordById("posts", post_id);
+    const post = e.app.findRecordById("videos", post_id);
     if (number == 1) {
       // flipped dislike → like
       post.set("likes_count", post.get("likes_count") + 1);
@@ -153,7 +153,7 @@ onRecordAfterUpdateSuccess((e) => {
     }
     e.app.save(post);
   } catch (err) {
-    console.log("failed to update post counts on flip:", err);
+    console.log("failed to update videos counts on flip:", err);
   }
 
   return e.next();
@@ -162,11 +162,11 @@ onRecordAfterUpdateSuccess((e) => {
 // on delete: decrement the relevant count
 onRecordAfterDeleteSuccess((e) => {
   const number = e.record?.get("like_dislike");
-  const post_id = e.record?.get("post");
+  const post_id = e.record?.get("videos");
   if (!post_id) return e.next();
 
   try {
-    const post = e.app.findRecordById("posts", post_id);
+    const post = e.app.findRecordById("videos", post_id);
     if (number == 1) {
       post.set("likes_count", post.get("likes_count") - 1);
     } else if (number == 0) {
@@ -174,7 +174,7 @@ onRecordAfterDeleteSuccess((e) => {
     }
     e.app.save(post);
   } catch (err) {
-    console.log("failed to update post counts on delete:", err);
+    console.log("failed to update videos counts on delete:", err);
   }
 
   return e.next();

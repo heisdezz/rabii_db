@@ -117,6 +117,7 @@ routerAdd(
 onRecordAfterCreateSuccess((e) => {
   const number = e.record?.get("like_dislike");
   const post_id = e.record?.get("videos");
+  console.log("create record");
   if (!post_id) return e.next();
 
   try {
@@ -137,15 +138,18 @@ onRecordAfterCreateSuccess((e) => {
 // on update: swap counts when like_dislike flips
 onRecordAfterUpdateSuccess((e) => {
   const number = e.record?.get("like_dislike");
-  const post_id = e.record?.get("videos");
+  const post_id = e.record?.get("post");
+  console.log("update record");
   if (!post_id) return e.next();
-
   try {
     const post = e.app.findRecordById("videos", post_id);
     if (number == 1) {
       // flipped dislike → like
       post.set("likes_count", post.get("likes_count") + 1);
-      post.set("dislikes_count", post.get("dislikes_count") - 1);
+      const dislike_count = post.getInt("dislikes_count");
+      if (dislike_count > 0) {
+        post.set("dislikes_count", dislike_count - 1);
+      }
     } else if (number == 0) {
       // flipped like → dislike
       post.set("likes_count", post.get("likes_count") - 1);

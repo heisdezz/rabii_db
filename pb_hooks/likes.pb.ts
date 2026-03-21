@@ -36,6 +36,10 @@ routerAdd(
       let reaction;
       try {
         reaction = e.app.findRecordById("post_reactions", gen_id);
+        // already liked — no-op
+        if (reaction.get("like_dislike") == 1) {
+          return e.json(200, { data: gen_id, message: "already liked" });
+        }
         // record exists — update it
         reaction.set("like_dislike", 1);
         e.app.save(reaction);
@@ -71,6 +75,10 @@ routerAdd(
       let reaction;
       try {
         reaction = e.app.findRecordById("post_reactions", gen_id);
+        // already disliked — no-op
+        if (reaction.get("like_dislike") == 0) {
+          return e.json(200, { data: gen_id, message: "already disliked" });
+        }
         // record exists — update it
         reaction.set("like_dislike", 0);
         e.app.save(reaction);
@@ -116,12 +124,11 @@ routerAdd(
 // on create: increment the relevant count
 onRecordAfterCreateSuccess((e) => {
   const number = e.record?.get("like_dislike");
-  const post_id = e.record?.get("videos");
+  const post_id = e.record?.get("post");
   console.log("create record");
   if (!post_id) return e.next();
-
   try {
-    const post = e.app.findRecordById("videos", post_id);
+    const post = e.app.findRecordById("likes", post_id);
     if (number == 1) {
       post.set("likes_count", post.get("likes_count") + 1);
     } else if (number == 0) {
@@ -131,7 +138,6 @@ onRecordAfterCreateSuccess((e) => {
   } catch (err) {
     console.log("failed to update videos counts:", err);
   }
-
   return e.next();
 }, "post_reactions");
 
@@ -142,9 +148,8 @@ onRecordAfterUpdateSuccess((e) => {
   console.log("update record");
   if (!post_id) return e.next();
   try {
-    const post = e.app.findRecordById("videos", post_id);
+    const post = e.app.findRecordById("likes", post_id);
     if (number == 1) {
-      // flipped dislike → like
       post.set("likes_count", post.get("likes_count") + 1);
       const dislike_count = post.getInt("dislikes_count");
       if (dislike_count > 0) {

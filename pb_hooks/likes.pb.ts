@@ -4,6 +4,7 @@ routerAdd(
   "GET",
   "/liked/{id}",
   (e) => {
+    //@ts-ignore
     const id = e.request.pathValue("id");
     const info = e.requestInfo();
     const user_id = info.auth?.id;
@@ -28,6 +29,7 @@ routerAdd(
   "POST",
   "/like/{id}",
   (e) => {
+    //@ts-ignore
     const video_id = e.request.pathValue("id");
     const info = e.requestInfo();
     const user_id = info.auth?.id;
@@ -67,6 +69,7 @@ routerAdd(
   "POST",
   "/dislike/{id}",
   (e) => {
+    //@ts-ignore
     const video_id = e.request.pathValue("id");
     const info = e.requestInfo();
     const user_id = info.auth?.id;
@@ -106,12 +109,22 @@ routerAdd(
   "POST",
   "/remove_like/{id}",
   (e) => {
+    //@ts-ignore
     const video_id = e.request.pathValue("id");
     const info = e.requestInfo();
     const user_id = info.auth?.id;
     const gen_id = `${user_id}${video_id}`;
     try {
       const reaction = e.app.findRecordById("post_reactions", gen_id);
+      const video_id = reaction.get("post");
+      const value = reaction.getInt("like_dislike");
+      const likes = e.app.findRecordById("likes", video_id);
+      if (value == 1) {
+        likes.set("likes_count", likes.get("likes_count") - 1);
+      } else if (value == 0) {
+        likes.set("dislikes_count", likes.get("dislikes_count") - 1);
+      }
+      e.app.save(likes);
       e.app.delete(reaction);
       return e.json(200, { data: gen_id, message: "reaction removed" });
     } catch (err) {

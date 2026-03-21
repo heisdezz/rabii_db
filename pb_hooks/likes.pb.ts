@@ -3,10 +3,12 @@ routerAdd(
   "GET",
   "/liked/{id}",
   (e) => {
-    //@ts-ignore
-    let gen_id = e.request.pathValue("gen_id");
+    const id = e.request.pathValue("id");
+    const info = e.requestInfo();
+    const user_id = info.auth?.id;
+    const gen_id = `${user_id}${id}`;
     try {
-      const video = $app.findRecordById("post_reactions", gen_id);
+      const video = e.app.findRecordById("post_reactions", gen_id);
       if (video) {
         return e.json(200, {
           data: true,
@@ -31,8 +33,6 @@ routerAdd(
   "POST",
   "/like/{id}",
   (e) => {
-    //@ts-ignore
-    //
     const video_id = e.request.pathValue("id");
     const info = e.requestInfo();
     const user_id = info.auth?.id;
@@ -45,7 +45,6 @@ routerAdd(
       new_like.set("user", user_id);
       new_like.set("post", video_id);
       e.app.save(new_like);
-      e.next();
       return e.json(201, {
         data: gen_id,
         message: "video liked",
@@ -61,24 +60,28 @@ routerAdd(
 );
 
 onRecordAfterCreateSuccess((e) => {
-  // const record = e.record;
   const number = e.record?.get("like_dislike");
-  const video_record = e.record?.get("video");
-  if (!video_record) {
-    console.log("video_record_not found");
+  const post_id = e.record?.get("post");
+  if (!post_id) {
+    console.log("post_id not found");
     return e.next();
   }
 
-  if (number == 1) {
-    const prev_like = video_record.get("likes_count");
-    video_record.set("likes_count", prev_like + 1);
-    e.app.save(video_record);
-    return e.next();
+  try {
+    const post_record = e.app.findRecordById("posts", post_id);
+
+    if (number == 1) {
+      const prev_like = post_record.get("likes_count");
+      post_record.set("likes_count", prev_like + 1);
+      e.app.save(post_record);
+    } else if (number == 0) {
+      const prev_dislike = post_record.get("dislikes_count");
+      post_record.set("dislikes_count", prev_dislike + 1);
+      e.app.save(post_record);
+    }
+  } catch (err) {
+    console.log("failed to update post counts:", err);
   }
-  if (number == 0) {
-    const prev_dislike = video_record.get("dislikes_count");
-    video_record.set("dislikes_count", prev_dislike + 1);
-    e.app.save(video_record);
-    return e.next();
-  }
+
+  return e.next();
 }, "post_reactions");

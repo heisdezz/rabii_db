@@ -33,7 +33,7 @@ routerAdd(
     const user_id = info.auth?.id;
     const gen_id = `${user_id}${video_id}`;
     try {
-      let reaction: RecordModel;
+      let reaction;
       try {
         reaction = e.app.findRecordById("post_reactions", gen_id);
         // record exists — update it
@@ -68,7 +68,7 @@ routerAdd(
     const user_id = info.auth?.id;
     const gen_id = `${user_id}${video_id}`;
     try {
-      let reaction: RecordModel;
+      let reaction;
       try {
         reaction = e.app.findRecordById("post_reactions", gen_id);
         // record exists — update it

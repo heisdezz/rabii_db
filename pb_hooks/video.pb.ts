@@ -34,6 +34,35 @@ onRecordCreateRequest((e) => {
   }
   e.next();
 }, "videos");
+onRecordUpdateRequest((e) => {
+  console.log("requesting create videos");
+  const body = e.requestInfo().body;
+  const tags = body?.tags;
+  console.log(tags);
+  if (tags?.length) {
+    const tags_col = e.app.findCachedCollectionByNameOrId("tags");
+    //@ts-ignore
+    const tag_ids = tags.map((tag) => {
+      const normalized_tag = tag.trim().toLowerCase();
+      try {
+        const existing = e.app.findFirstRecordByData(
+          "tags",
+          `name`,
+          normalized_tag,
+        );
+        return existing.id;
+      } catch (_) {
+        const new_tag = new Record(tags_col);
+        new_tag.set("name", normalized_tag);
+        e.app.save(new_tag);
+        return new_tag.id;
+      }
+    });
+    console.log(tag_ids);
+    e.record?.set("tags", tag_ids);
+  }
+  e.next();
+}, "videos");
 
 onRecordAfterCreateSuccess((e) => {
   const record = e.record;

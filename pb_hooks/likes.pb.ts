@@ -50,6 +50,7 @@ routerAdd(
         message: "video liked",
       });
     } catch (err) {
+      console.log("failed to like video:", err);
       return e.json(500, {
         data: null,
         message: "internal server error",

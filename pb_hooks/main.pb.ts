@@ -7,3 +7,7 @@ onRecordAfterCreateError((e) => {
   console.log(e.error, "error occured");
   e.next();
 });
+
+onRecordAfterCreateError((e) => {
+  e.next();
+});

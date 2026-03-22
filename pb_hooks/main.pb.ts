@@ -9,5 +9,6 @@ onRecordAfterCreateError((e) => {
 });
 
 onRecordAfterCreateError((e) => {
+  console.log(e, "record create error");
   e.next();
 });
